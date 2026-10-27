@@ -482,7 +482,73 @@ async function verifyUserWithRender() {
     
 
 
+// ===== ระบบตรวจสลิปอัตโนมัติ (วางในไฟล์ร้านค้า) =====
+// ตรวจ 2 อย่าง: 1) รูปต้องเป็นสลิปโอนเงิน  2) ยอดเงินในสลิปต้องตรงกับราคาสินค้า
 
+// ---------- ส่วนอ่านข้อความ (ไม่ต้องแก้) ----------
+const SLIP_KEYWORDS = [
+    'โอนเงินสำเร็จ', 'รายการสำเร็จ', 'ทำรายการสำเร็จ', 'โอนเงิน', 'จำนวนเงิน', 'จำนวน',
+    'ค่าธรรมเนียม', 'เลขที่รายการ', 'รหัสอ้างอิง', 'หมายเลขอ้างอิง', 'ธนาคาร', 'พร้อมเพย์',
+    'promptpay', 'transfer', 'successful', 'amount', 'bank', 'fee', 'ref'
+];
+
+function slipNormalize(text) {
+    // OCR มักแทรกช่องว่างระหว่างตัวอักษรไทย จึงลบช่องว่างทั้งหมดก่อนเทียบคำ
+    return String(text || '').toLowerCase().replace(/\s+/g, '');
+}
+
+function slipFindAmounts(text) {
+    // หาตัวเลขแบบมีทศนิยม 2 ตำแหน่ง เช่น 150.00 หรือ 1,450.00
+    const found = [];
+    const re = /\d{1,3}(?:,\d{3})*\.\d{2}|\d+\.\d{2}/g;
+    const t = String(text || '').replace(/(\d)\s+(?=[.,]\d)/g, '$1');
+    let m;
+    while ((m = re.exec(t)) !== null) {
+        found.push(parseFloat(m[0].replace(/,/g, '')));
+    }
+    return found;
+}
+
+function slipEvaluate(text, price) {
+    const norm = slipNormalize(text);
+    const hits = SLIP_KEYWORDS.filter(function (k) { return norm.indexOf(k) !== -1; });
+    const amounts = slipFindAmounts(text);
+
+    if (hits.length < 2 || amounts.length === 0) {
+        return { ok: false, msg: '❌ รูปนี้ไม่ใช่สลิปโอนเงิน กรุณาแนบสลิปจากแอปธนาคารเท่านั้น' };
+    }
+    const matched = amounts.some(function (a) { return Math.abs(a - price) < 0.005; });
+    if (!matched) {
+        return {
+            ok: false,
+            msg: '❌ ยอดเงินในสลิปไม่ตรงกับราคาสินค้า (ต้องโอน ' + price.toLocaleString() +
+                 ' บาท, อ่านได้ ' + amounts.slice(0, 3).join(', ') + ')'
+        };
+    }
+    return { ok: true, msg: '' };
+}
+
+// ---------- ส่วนที่ใช้งานจริง ----------
+async function checkSlip(file, price, statusEl) {
+    if (typeof Tesseract === 'undefined') {
+        return { ok: false, msg: '❌ โหลดระบบตรวจสลิปไม่สำเร็จ กรุณารีเฟรชหน้าแล้วลองใหม่' };
+    }
+    try {
+        statusEl.textContent = '🔍 กำลังตรวจสลิป... (ครั้งแรกอาจนาน 20-40 วินาที)';
+        const result = await Tesseract.recognize(file, 'tha+eng', {
+            logger: function (m) {
+                if (m.status === 'recognizing text') {
+                    statusEl.textContent = '🔍 กำลังอ่านสลิป ' + Math.round(m.progress * 100) + '%';
+                }
+            }
+        });
+        return slipEvaluate(result.data.text, price);
+    } catch (err) {
+        console.error(err);
+        return { ok: false, msg: '❌ อ่านรูปไม่สำเร็จ กรุณาแนบสลิปที่ชัดเจนแล้วลองใหม่' };
+    }
+}
+        
         
         
     </script>
