@@ -537,8 +537,11 @@ function slipEvaluate(text, price) {
           '\nข้อความที่อ่านได้: ' + String(text || '').replace(/\s+/g, ' ').slice(0, 220)
         : '';
 
-    if (hits.length < 2 || amounts.length === 0) {
+    if (hits.length < 2) {
         return { ok: false, msg: '❌ รูปนี้ไม่ใช่สลิปโอนเงิน กรุณาแนบสลิปจากแอปธนาคารหรือกระเป๋าเงินเท่านั้น' + dbg };
+    }
+    if (amounts.length === 0) {
+        return { ok: false, msg: '⚠️ อ่านยอดเงินจากสลิปไม่ได้ กรุณาแนบสลิปที่เห็นตัวเลขยอดเงินชัดเจน (ครอปรูปให้เห็นยอดเงิน)' + dbg };
     }
     const matched = amounts.some(function (a) { return Math.abs(a - price) < 0.005; });
     if (!matched) {
@@ -551,25 +554,74 @@ function slipEvaluate(text, price) {
     return { ok: true, msg: '' };
 }
 
+// ปรับภาพให้อ่านตัวเลขง่ายขึ้น: ขยาย + ขาวดำ + เพิ่มคอนทราสต์ (invert = กลับสี สำหรับตัวหนังสือขาวบนพื้นสี)
+function slipPreprocess(file, invert) {
+    return new Promise(function (resolve, reject) {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = function () {
+            const w = Math.min(2000, Math.max(1400, img.width));
+            const h = Math.round(img.height * (w / img.width));
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const d = ctx.getImageData(0, 0, w, h);
+            const px = d.data;
+            for (let i = 0; i < px.length; i += 4) {
+                let v = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+                v = (v - 128) * 1.8 + 128;
+                v = v < 0 ? 0 : (v > 255 ? 255 : v);
+                if (invert) v = 255 - v;
+                px[i] = px[i + 1] = px[i + 2] = v;
+            }
+            ctx.putImageData(d, 0, 0);
+            URL.revokeObjectURL(url);
+            resolve(c);
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('โหลดรูปไม่ได้')); };
+        img.src = url;
+    });
+}
+
 async function checkSlip(file, price, statusEl) {
     if (typeof Tesseract === 'undefined') {
         return { ok: false, msg: '❌ โหลดระบบตรวจสลิปไม่สำเร็จ กรุณารีเฟรชหน้าแล้วลองใหม่' };
     }
     try {
+        // รอบที่ 1: อ่านทั้งภาพ ไทย+อังกฤษ (ใช้ดูว่าเป็นสลิปไหม)
         statusEl.textContent = '🔍 กำลังตรวจสลิป... (ครั้งแรกอาจนาน 20-40 วินาที)';
-        const result = await Tesseract.recognize(file, 'tha+eng', {
+        const r1 = await Tesseract.recognize(file, 'tha+eng', {
             logger: function (m) {
                 if (m.status === 'recognizing text') {
                     statusEl.textContent = '🔍 กำลังอ่านสลิป ' + Math.round(m.progress * 100) + '%';
                 }
             }
         });
-        return slipEvaluate(result.data.text, price);
+        let text = r1.data.text;
+        let res = slipEvaluate(text, price);
+        if (res.ok) return res;
+
+        // รอบที่ 2-3: ถ้ายังหายอดเงินไม่เจอ ลองปรับภาพ (ปกติ / กลับสี) แล้วอ่านเฉพาะตัวเลข
+        statusEl.textContent = '🔍 กำลังอ่านยอดเงินอีกครั้ง...';
+        const worker = await Tesseract.createWorker('eng');
+        try {
+            await worker.setParameters({ tessedit_pageseg_mode: '11' });   // อ่านข้อความกระจัดกระจาย
+            for (const inv of [false, true]) {
+                const canvas = await slipPreprocess(file, inv);
+                const r = await worker.recognize(canvas);
+                text += '\n' + r.data.text;
+            }
+        } finally {
+            await worker.terminate();
+        }
+        return slipEvaluate(text, price);
     } catch (err) {
         console.error(err);
         return { ok: false, msg: '❌ อ่านรูปไม่สำเร็จ กรุณาแนบสลิปที่ชัดเจนแล้วลองใหม่' };
     }
-}
+        }
+        
 
         
         
