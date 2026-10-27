@@ -412,7 +412,13 @@ async function verifyUserWithRender() {
             btn.disabled = true;
             btn.classList.add('opacity-60');
             statusEl.textContent = 'กำลังอัปโหลดสลิปและส่งข้อมูลหาแอดมิน... ⏳';
-
+                        const check = await checkSlip(slipInput.files[0], selectedProduct.price, statusEl);
+            if (!check.ok) {
+                statusEl.textContent = check.msg;
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
+                return;
+            }
             const formData = new FormData();
             const payload = {
                 content: "🚨 **มีคำสั่งซื้อใหม่และแนบสลิปโอนเงินเข้ามาแล้ว (ยืนยันสิทธิ์สมาชิกแล้ว)!** 💎",
