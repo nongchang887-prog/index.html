@@ -488,7 +488,6 @@ async function verifyUserWithRender() {
     
 
 
-
 // ===== ระบบตรวจสลิปอัตโนมัติ เวอร์ชัน 2 (แทนของเดิมทั้งก้อน) =====
 // ไม่ได้ผูกกับธนาคารใดธนาคารหนึ่ง ใช้ได้กับสลิปธนาคารและแอปกระเป๋าเงินทุกเจ้า
 // 📍 ลบ slip-check.js ตัวเก่าในไฟล์ร้านค้าออกให้หมด แล้ววางอันนี้แทน (ท้ายสคริปต์)
@@ -496,6 +495,10 @@ async function verifyUserWithRender() {
 // เปิดไว้ก่อนระหว่างทดสอบ: ถ้าตรวจไม่ผ่านจะโชว์ข้อความที่ระบบอ่านได้จากรูปด้วย
 // พอใช้งานได้ดีแล้ว เปลี่ยนเป็น false
 const SLIP_DEBUG = true;
+
+// สวิตช์ตรวจเพิ่มเติม (ตอนนี้ปิดไว้ เช็กแค่ว่า "เป็นสลิปไหม" ส่วนยอดเงินให้แอดมินดูเองใน Discord)
+const SLIP_CHECK_AMOUNT = false;   // true = ยอดในสลิปต้องตรงราคาสินค้า
+const SLIP_CHECK_DATE = false;     // true = วันที่ในสลิปต้องเป็นวันนี้
 
 const SLIP_KEYWORDS = [
     // คำทั่วไปในสลิป
@@ -555,11 +558,11 @@ function slipEvaluate(text, price) {
     if (!hasTime || hits.length < 1 || (hits.length < 2 && amounts.length === 0)) {
         return { ok: false, msg: '❌ รูปนี้ไม่ใช่สลิปโอนเงิน กรุณาแนบสลิปจากแอปธนาคารหรือกระเป๋าเงินเท่านั้น' + dbg };
     }
-    if (amounts.length === 0) {
+    if (SLIP_CHECK_AMOUNT && amounts.length === 0) {
         return { ok: false, msg: '⚠️ อ่านยอดเงินจากสลิปไม่ได้ กรุณาแนบสลิปที่เห็นตัวเลขยอดเงินชัดเจน (ครอปรูปให้เห็นยอดเงิน)' + dbg };
     }
     const matched = amounts.some(function (a) { return Math.abs(a - price) < 0.005; });
-    if (!matched) {
+    if (SLIP_CHECK_AMOUNT && !matched) {
         return {
             ok: false,
             msg: '❌ ยอดเงินในสลิปไม่ตรงกับราคาสินค้า (ต้องโอน ' + price.toLocaleString() +
@@ -695,7 +698,7 @@ async function checkSlip(file, price, statusEl) {
         });
         let text = r1.data.text;
         let res = slipEvaluate(text, price);
-        if (res.ok) return await slipCheckDate(text);
+        if (res.ok) return SLIP_CHECK_DATE ? await slipCheckDate(text) : res;
 
         // รอบที่ 2-3: ถ้ายังหายอดเงินไม่เจอ ลองปรับภาพ (ปกติ / กลับสี) แล้วอ่านเฉพาะตัวเลข
         statusEl.textContent = '🔍 กำลังอ่านยอดเงินอีกครั้ง...';
@@ -711,15 +714,16 @@ async function checkSlip(file, price, statusEl) {
             await worker.terminate();
         }
         res = slipEvaluate(text, price);
-        if (res.ok) return await slipCheckDate(text);
+        if (res.ok) return SLIP_CHECK_DATE ? await slipCheckDate(text) : res;
         return res;
     } catch (err) {
         console.error(err);
         return { ok: false, msg: '❌ อ่านรูปไม่สำเร็จ กรุณาแนบสลิปที่ชัดเจนแล้วลองใหม่' };
     }
         }
-    
-        
+ 
+
+
 
         
         
