@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ร้านค้าพรีเมี่ยมเจ็ด Free Fire ประเทศไทย</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+            position: relative;
+            background-color: #0f172a;
+        }
+
+        /* 🖼️ เปลี่ยนลิงก์รูปพื้นหลังหลักของร้านค้าตรงนี้ */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://i.ibb.co/3YpWxb5J/FB-IMG-1787390135699.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(8px);
+            transform: scale(1.1);
+            z-index: -2;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            z-index: -1;
+        }
+
+        .product-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(245, 158, 11, 0.5);
+            box-shadow: 0 12px 24px -10px rgba(245, 158, 11, 0.3);
+        }
+        
+        
+        
+        /* บล็อกเคอร์เซอร์กระพริบและการคลุมดำเลือกข้อความทั้งหมด (ยกเว้นช่องกรอก UID) */
+body *:not(#user-uid):not(input):not(textarea) {
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE/Edge */
+    user-select: none;         /* Standard */
+    -webkit-touch-callout: none; /* ป้องกันการกดค้างบนมือถือ */
+}
+
+
+
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start min-h-screen">
+
+    <div class="bg-overlay"></div>
+
+    <div class="w-full max-w-4xl space-y-4 relative z-10">
+
+        <!-- ================= 📢 ข้อความวิ่ง (ขวาไปซ้าย) ================= -->
+        <div class="w-full bg-slate-900/90 border border-amber-500/30 rounded-2xl py-2.5 px-4 overflow-hidden shadow-lg shadow-amber-500/5 backdrop-blur-md">
+            <marquee behavior="scroll" direction="left" scrollamount="6" class="text-sm font-semibold text-amber-300 tracking-wide">
+                🔥 ร้านค้าพรีเมี่ยมเจ็ด Free Fire ประเทศไทยยินดีต้อนรับ | เติมเพชรราคาถูก ปลอดภัย ได้รับไอเทมทันที | สนับสนุนและเปิดให้บริการตลอด 24 ชั่วโมง 💎
+            </marquee>
+        </div>
+
+        <!-- ================= 🎮 ช่องกรอก UID เกม ================= -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-amber-500/30 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <span class="text-xl">🎮</span>
+                <div>
+                    <h2 class="text-xs font-bold text-amber-300">กรอก UID เกม Free Fire ของคุณก่อนสั่งซื้อ</h2>
+                    <p class="text-[10px] text-slate-400">รองรับตั้งแต่ 8 ถึง 16 หลัก (ทุกรุ่นไอดีเก่า-ใหม่)</p>
+                </div>
+            </div>
+            <div class="w-full sm:w-72">
+                <input type="text" id="user-uid" inputmode="numeric" maxlength="16" placeholder="กรอก UID (8-16 หลัก)" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-semibold tracking-wider text-center">
+            </div>
+        </div>
+
+        <!-- ================= 🛒 กรอบใหญ่รวมสินค้า (4 ช่อง) ================= -->
+        <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl">
+            
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-black text-amber-400">💎 สินค้าพรีเมี่ยมแนะนำ</h1>
+                <p class="text-slate-400 text-xs">เลือกไอเทมสุดคุ้มที่คุณต้องการสั่งซื้อได้ที่นี่</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                <!-- สินค้าชิ้นที่ 1 -->
+                <div class="product-card rounded-2xl p-3 flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-36 rounded-xl bg-slate-800/80 overflow-hidden mb-3 border border-white/5 flex items-center justify-center relative">
+                            <img src="https://i.ibb.co/bjJrqynG/Screenshot-20261027-090428-com-dts-freefiremax-FFMain-Activity.jpg" alt="สินค้า 1" class="w-full h-full object-cover">
+                        </div>
+                        <h3 class="font-bold text-sm text-slate-100 truncate">ชื่อไอเทม ชิ้นที่ 1</h3>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-700/50">
+                        <div class="flex items-center gap-1 text-sky-400 text-xs font-semibold">
+                            <span>💎</span>
+                            <span>เพชรที่ใช้: <strong class="text-sm">500</strong> เพชร</span>
+                        </div>
+                        <div class="text-emerald-400 text-xs font-semibold mt-0.5">
+                            <span>💵 ราคาเพียง: <strong class="text-sm text-emerald-300">150</strong> บาท</span>
+                        </div>
+                        <div class="flex justify-end mt-3">
+                            <button onclick="handleBuy('สินค้าชิ้นที่ 1', 150, 500, 'ลิงก์รูป_QR_150บาท.png')" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition active:scale-95">
+                                สั่งซื้อสินค้า
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- สินค้าชิ้นที่ 2 -->
+                <div class="product-card rounded-2xl p-3 flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-36 rounded-xl bg-slate-800/80 overflow-hidden mb-3 border border-white/5 flex items-center justify-center relative">
+                            <img src="https://via.placeholder.com/300x300.png?text=Item+2" alt="สินค้า 2" class="w-full h-full object-cover">
+                        </div>
+                        <h3 class="font-bold text-sm text-slate-100 truncate">ชื่อไอเทม ชิ้นที่ 2</h3>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-700/50">
+                        <div class="flex items-center gap-1 text-sky-400 text-xs font-semibold">
+                            <span>💎</span>
+                            <span>เพชรที่ใช้: <strong class="text-sm">1,000</strong> เพชร</span>
+                        </div>
+                        <div class="text-emerald-400 text-xs font-semibold mt-0.5">
+                            <span>💵 ราคาเพียง: <strong class="text-sm text-emerald-300">300</strong> บาท</span>
+                        </div>
+                        <div class="flex justify-end mt-3">
+                            <button onclick="handleBuy('สินค้าชิ้นที่ 2', 300, 1000, 'ลิงก์รูป_QR_300บาท.png')" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition active:scale-95">
+                                สั่งซื้อสินค้า
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- สินค้าชิ้นที่ 3 -->
+                <div class="product-card rounded-2xl p-3 flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-36 rounded-xl bg-slate-800/80 overflow-hidden mb-3 border border-white/5 flex items-center justify-center relative">
+                            <img src="https://via.placeholder.com/300x300.png?text=Item+3" alt="สินค้า 3" class="w-full h-full object-cover">
+                        </div>
+                        <h3 class="font-bold text-sm text-slate-100 truncate">ชื่อไอเทม ชิ้นที่ 3</h3>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-700/50">
+                        <div class="flex items-center gap-1 text-sky-400 text-xs font-semibold">
+                            <span>💎</span>
+                            <span>เพชรที่ใช้: <strong class="text-sm">2,000</strong> เพชร</span>
+                        </div>
+                        <div class="text-emerald-400 text-xs font-semibold mt-0.5">
+                            <span>💵 ราคาเพียง: <strong class="text-sm text-emerald-300">590</strong> บาท</span>
+                        </div>
+                        <div class="flex justify-end mt-3">
+                            <button onclick="handleBuy('สินค้าชิ้นที่ 3', 590, 2000, 'ลิงก์รูป_QR_590บาท.png')" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition active:scale-95">
+                                สั่งซื้อสินค้า
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- สินค้าชิ้นที่ 4 -->
+                <div class="product-card rounded-2xl p-3 flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-36 rounded-xl bg-slate-800/80 overflow-hidden mb-3 border border-white/5 flex items-center justify-center relative">
+                            <img src="https://via.placeholder.com/300x300.png?text=Item+4" alt="สินค้า 4" class="w-full h-full object-cover">
+                        </div>
+                        <h3 class="font-bold text-sm text-slate-100 truncate">ชื่อไอเทม ชิ้นที่ 4</h3>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-700/50">
+                        <div class="flex items-center gap-1 text-sky-400 text-xs font-semibold">
+                            <span>💎</span>
+                            <span>เพชรที่ใช้: <strong class="text-sm">5,000</strong> เพชร</span>
+                        </div>
+                        <div class="text-emerald-400 text-xs font-semibold mt-0.5">
+                            <span>💵 ราคาเพียง: <strong class="text-sm text-emerald-300">1,450</strong> บาท</span>
+                        </div>
+                        <div class="flex justify-end mt-3">
+                            <button onclick="handleBuy('สินค้าชิ้นที่ 4', 1450, 5000, 'ลิงก์รูป_QR_1450บาท.png')" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition active:scale-95">
+                                สั่งซื้อสินค้า
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= 📋 เงื่อนไขการสั่งซื้อ ================= -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-5 shadow-xl space-y-2">
+            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+                <span>📌</span> เงื่อนไขและวิธีการสั่งซื้อสินค้า
+            </h3>
+            <ol class="list-decimal list-inside text-xs text-slate-300 space-y-1.5 leading-relaxed">
+                <li>กรอก <strong class="text-amber-300">UID เกม Free Fire (8-16 หลัก)</strong> ให้ถูกต้องก่อนกดสั่งซื้อ</li>
+                <li>เลือกสินค้าแล้วสแกน <strong class="text-amber-300">QR Code</strong> โอนเงินตามยอดจริง (ตรวจสอบชื่อบัญชีให้ตรงกับประกาศ)</li>
+                <li>แนบรูปสลิปโอนเงินผ่านหน้าเว็บแล้วกดปุ่มยืนยัน ระบบจะส่งสลิปและข้อมูลเข้า Discord ทันที</li>
+                <li><strong class="text-rose-400">ข้อควรทราบ:</strong> หากเกิดข้อผิดพลาดจากฝั่งผู้ซื้อ (เช่น โอนผิดบัญชี, ไม่แจ้งสลิป) ทางเว็บจะไม่รับผิดชอบใดๆ ทั้งสิ้น แต่หากผิดพลาดจากทางระบบหรือผู้ขาย ทางเรายินดีรับผิดชอบทุกบาททุกสตางค์!</li>
+            </ol>
+        </div>
+
+    </div>
+
+    <!-- ================= 🪟 MODAL ป๊อปอัพแจ้งเตือนให้ไปล็อกอินก่อน ================= -->
+    <div id="login-required-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        <div class="bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-center relative">
+            <div class="w-14 h-14 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto text-2xl">
+                🔐
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-amber-300">กรุณาเข้าสู่ระบบก่อนสั่งซื้อ</h3>
+                <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                    ระบบตรวจไม่พบการล็อกอินบัญชีของคุณ กรุณาเข้าสู่ระบบที่หน้าเว็บหลักเพื่อยืนยันตัวตนก่อนสั่งซื้อสินค้า
+                </p>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeLoginModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs transition active:scale-95">
+                    ยกเลิก
+                </button>
+                <button onclick="redirectToMainLogin()" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-extrabold text-xs shadow-lg shadow-amber-500/30 transition active:scale-95">
+                    ไปหน้าล็อกอิน 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 🪟 MODAL หน้าต่างสแกน QR Code และแนบสลิป ================= -->
+    <div id="checkout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-6 space-y-3 shadow-2xl text-center relative my-8">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 text-xl font-bold hover:text-white">✕</button>
+
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/20">
+                    💳 ชำระเงินและแจ้งสลิป
+                </span>
+                <h3 class="text-base font-extrabold text-white mt-2" id="modal-item-name">ชื่อสินค้า</h3>
+            </div>
+
+            <div class="bg-slate-950/70 border border-white/10 rounded-2xl p-3 text-left space-y-1 text-xs">
+                <p class="text-slate-300">🎮 UID: <span id="modal-uid" class="font-bold text-amber-300"></span></p>
+                <p class="text-slate-300">💎 เพชร: <span id="modal-diamonds" class="font-bold text-sky-400"></span> เพชร</p>
+                <p class="text-slate-300">💵 ยอดโอน: <span id="modal-price" class="font-bold text-emerald-400"></span> บาท</p>
+            </div>
+
+            <div class="space-y-1">
+                <div class="w-44 h-44 mx-auto bg-white p-2 rounded-2xl shadow-inner flex items-center justify-center overflow-hidden">
+                    <img id="qr-code-img" src="" alt="QR Code ชำระเงิน" class="w-full h-full object-contain">
+                </div>
+                <p class="text-[11px] text-rose-400 font-bold mt-1">
+                    ⚠️ ระวังมิจฉาชีพ! ชื่อใน QR Code ต้องตรงกับชื่อ: <span class="text-amber-300 underline">ชื่อ-นามสกุล ของคุณที่นี่</span> เท่านั้น
+                </p>
+            </div>
+
+            <div class="text-left space-y-1 pt-1 border-t border-slate-800">
+                <label class="block text-[11px] font-bold text-slate-300">📎 แนบสลิปหลักฐานการโอนเงิน:</label>
+                <input type="file" id="slip-file" accept="image/*" class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-amber-300 hover:file:bg-slate-700 cursor-pointer">
+            </div>
+
+            <button id="confirm-order-btn" onclick="sendOrderToDiscord()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-extrabold text-xs shadow-lg shadow-emerald-600/30 transition active:scale-95">
+                📤 ส่งสลิปและแจ้งแอดมิน (Discord)
+            </button>
+
+            <p id="order-status" class="text-[11px] text-slate-400 min-h-[16px] leading-tight"></p>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT ระบบตรวจสอบสิทธิ์ + DISCORD WEBHOOK ================= -->
+    <script>
+        // 📌 ตั้งค่า SUPABASE & RENDER SERVER
+        const SUPABASE_URL = 'https://ztkqtvdllpzjsvlqxzni.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_BkDeJmZYwMys8OP4eMkpVQ_F6hrJ35t';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const RENDER_API_URL = 'https://ai-uvix.onrender.com';
+        const API_BASE = RENDER_API_URL.trim().replace(/\/+$/, '');
+
+        // 🔗 ลิงก์หน้าเว็บหลักของคุณ (เอาไว้ส่งผู้ใช้กลับไปล็อกอิน)
+        const MAIN_WEBSITE_URL = 'https://suphasan887-beep.github.io/index.html/';
+
+        // 🚨 [สำคัญมาก] นำ Discord Webhook URL ของคุณมาวางตรงนี้
+        const DISCORD_WEBHOOK_URL = "วาง_Discord_Webhook_URL_ของคุณที่นี่";
+
+        let selectedProduct = { name: '', price: 0, diamonds: 0 };
+        let currentUserToken = null;
+
+        // ดึง Token จาก Session
+        async function getAccessToken() {
+            try {
+                const { data } = await supabaseClient.auth.getSession();
+                return data && data.session ? data.session.access_token : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ฟังก์ชันยิงไปถาม Render Backend ว่า Token นี้ถูกต้องและใช้งานได้จริงไหม
+        async function verifyUserWithRender() {
+            const token = await getAccessToken();
+            if (!token) return false;
+
+            try {
+                const res = await fetch(API_BASE + '/api/my-points', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) return false;
+                
+                const json = await res.json();
+                if (json.banned) return false;
+                
+                currentUserToken = token;
+                return true;
+            } catch (err) {
+                console.error(" Render Verify Error:", err);
+                return false;
+            }
+        }
+
+        // กดซื้อสินค้า
+        async function handleBuy(name, price, diamonds, qrImageUrl) {
+            const uidInput = document.getElementById('user-uid');
+            const uid = uidInput.value.trim();
+
+            if (!uid || uid.length < 8 || uid.length > 16) {
+                alert('⚠️ กรุณากรอก UID เกม Free Fire (ความยาว 8-16 หลัก) ให้ถูกต้องก่อนทำการสั่งซื้อ!');
+                uidInput.focus();
+                return;
+            }
+
+            // 🔍 1. เช็คสิทธิ์ ล็อกอินผ่าน Render / Supabase ก่อนเปิดการ์ดชำระเงิน
+            const isVerified = await verifyUserWithRender();
+            if (!isVerified) {
+                // ถ้าไม่ผ่าน ให้เปิด Pop-up เตือนไปล็อกอิน
+                document.getElementById('login-required-modal').classList.remove('hidden');
+                return;
+            }
+
+            if (DISCORD_WEBHOOK_URL.indexOf('วาง_Discord_Webhook_URL') !== -1) {
+                alert('⚠️ แจ้งเตือน: ยังไม่ได้ตั้งค่า Discord Webhook URL ในโค้ด');
+                return;
+            }
+
+            selectedProduct = { name: name, price: price, diamonds: diamonds };
+            document.getElementById('modal-item-name').textContent = name;
+            document.getElementById('modal-uid').textContent = uid ;
+            document.getElementById('modal-diamonds').textContent = diamonds.toLocaleString();
+            document.getElementById('modal-price').textContent = price.toLocaleString();
+            document.getElementById('qr-code-img').src = qrImageUrl;
+            document.getElementById('slip-file').value = '';
+            document.getElementById('order-status').textContent = '';
+
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('checkout-modal').classList.add('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-required-modal').classList.add('hidden');
+        }
+
+        // วนกลับไปหน้าเว็บหลักเพื่อเข้าสู่ระบบ
+        function redirectToMainLogin() {
+            window.location.href = MAIN_WEBSITE_URL;
+        }
+
+        // ส่งสลิปและข้อมูลเข้า Discord
+        async function sendOrderToDiscord() {
+            const uid = document.getElementById('user-uid').value.trim();
+            const slipInput = document.getElementById('slip-file');
+            const statusEl = document.getElementById('order-status');
+            const btn = document.getElementById('confirm-order-btn');
+
+            if (slipInput.files.length === 0) {
+                alert('⚠️ กรุณาแนบรูปสลิปการโอนเงินก่อนกดยืนยัน!');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.classList.add('opacity-60');
+            statusEl.textContent = 'กำลังอัปโหลดสลิปและส่งข้อมูลหาแอดมิน... ⏳';
+
+            const formData = new FormData();
+            const payload = {
+                content: "🚨 **มีคำสั่งซื้อใหม่และแนบสลิปโอนเงินเข้ามาแล้ว (ยืนยันสิทธิ์สมาชิกแล้ว)!** 💎",
+                embeds: [{
+                    title: "🛒 รายละเอียดคำสั่งซื้อและสลิป",
+                    color: 5763719,
+                    fields: [
+                        { name: "🎮 UID ลูกค้า", value: "`" + uid + "`", inline: false },
+                        { name: "📦 สินค้า", value: selectedProduct.name, inline: true },
+                        { name: "💎 เพชร", value: selectedProduct.diamonds + " เพชร", inline: true },
+                        { name: "💵 ยอดโอนจริง", value: selectedProduct.price + " บาท", inline: true }
+                    ],
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            formData.append('payload_json', JSON.stringify(payload));
+            formData.append('file', slipInput.files[0]);
+
+            try {
+                const response = await fetch(DISCORD_WEBHOOK_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('ไม่สามารถส่งข้อมูลไปที่ Discord ได้');
+
+                statusEl.textContent = '✅ ส่งสลิปและข้อมูลหาแอดมินสำเร็จ! กรุณารอแอดมินตรวจสอบ';
+                setTimeout(() => {
+                    closeModal();
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-60');
+                }, 3000);
+
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = '❌ เกิดข้อผิดพลาดในการส่งข้อมูล ลองใหม่อีกครั้ง';
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
+            }
+        }
+    </script>
+</body>
+</html>
