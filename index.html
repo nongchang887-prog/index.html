@@ -489,7 +489,7 @@ async function verifyUserWithRender() {
 
 
 
-    // ===== ระบบตรวจสลิปอัตโนมัติ เวอร์ชัน 2 (แทนของเดิมทั้งก้อน) =====
+// ===== ระบบตรวจสลิปอัตโนมัติ เวอร์ชัน 2 (แทนของเดิมทั้งก้อน) =====
 // ไม่ได้ผูกกับธนาคารใดธนาคารหนึ่ง ใช้ได้กับสลิปธนาคารและแอปกระเป๋าเงินทุกเจ้า
 // 📍 ลบ slip-check.js ตัวเก่าในไฟล์ร้านค้าออกให้หมด แล้ววางอันนี้แทน (ท้ายสคริปต์)
 
@@ -540,6 +540,10 @@ function slipEvaluate(text, price) {
         const ints = String(text || '').match(/(?<![\d.,:\/-])\d{1,6}(?![\d.,:\/-])/g) || [];
         amounts = ints.map(Number).filter(function (n) { return n > 0; });
     }
+    // เครื่องหมาย ฿ มักถูก OCR อ่านเป็นเลข 8 (เช่น ฿100 กลายเป็น 8100) จึงเพิ่มตัวเลือกที่ตัด 8 ตัวหน้าออกด้วย
+    amounts = amounts.concat(amounts.filter(function (a) {
+        return a >= 800 && String(Math.floor(a)).charAt(0) === '8';
+    }).map(function (a) { return parseFloat(String(a).slice(1)); }));
     const dbg = SLIP_DEBUG
         ? '\n[ทดสอบ] คำที่เจอ: ' + hits.slice(0, 8).join(', ') + ' | ตัวเลข: ' + amounts.slice(0, 5).join(', ') +
           '\nข้อความที่อ่านได้: ' + String(text || '').replace(/\s+/g, ' ').slice(0, 220)
@@ -566,6 +570,86 @@ function slipEvaluate(text, price) {
 }
 
 // ปรับภาพให้อ่านตัวเลขง่ายขึ้น: ขยาย + ขาวดำ + เพิ่มคอนทราสต์ (invert = กลับสี สำหรับตัวหนังสือขาวบนพื้นสี)
+// ---------- ตรวจวันที่ในสลิปให้ตรงกับวันนี้ ----------
+// 0 = ต้องเป็นวันนี้เท่านั้น, 1 = วันนี้หรือเมื่อวาน (เผื่อโอนก่อนเที่ยงคืน)
+const SLIP_MAX_DAYS_OLD = 0;
+
+const SLIP_MONTHS = [
+    ['มกราคม', 'ม.ค.', 'jan'], ['กุมภาพันธ์', 'ก.พ.', 'feb'], ['มีนาคม', 'มี.ค.', 'mar'],
+    ['เมษายน', 'เม.ย.', 'apr'], ['พฤษภาคม', 'พ.ค.', 'may'], ['มิถุนายน', 'มิ.ย.', 'jun'],
+    ['กรกฎาคม', 'ก.ค.', 'jul'], ['สิงหาคม', 'ส.ค.', 'aug'], ['กันยายน', 'ก.ย.', 'sep'],
+    ['ตุลาคม', 'ต.ค.', 'oct'], ['พฤศจิกายน', 'พ.ย.', 'nov'], ['ธันวาคม', 'ธ.ค.', 'dec']
+];
+
+function slipFixYear(y) {
+    if (y < 100) y = 2500 + y;          // 69 -> 2569
+    if (y > 2400) y -= 543;             // พ.ศ. -> ค.ศ.
+    return y;
+}
+
+// คืนรายการวันที่ที่เจอในข้อความ [{y,m,d}] (ค.ศ.)
+function slipFindDates(text) {
+    // เก็บช่องว่างไว้ (แค่ย่อให้เหลือช่องเดียว) เพราะถ้าลบหมด ปีจะไปติดกับเวลา เช่น 256915:12
+    const t = String(text || '').toLowerCase().replace(/\s+/g, ' ');
+    const out = [];
+    let m;
+    for (let mi = 0; mi < 12; mi++) {
+        SLIP_MONTHS[mi].forEach(function (name) {
+            const esc = name.split('.').filter(Boolean).join('\\.?\\s?') + (name.indexOf('.') !== -1 ? '\\.?' : '');
+            const re = new RegExp('(\\d{1,2})\\s?' + esc + '\\s?(\\d{4}|\\d{2})(?!\\d)', 'g');
+            while ((m = re.exec(t)) !== null) {
+                out.push({ y: slipFixYear(parseInt(m[2], 10)), m: mi + 1, d: parseInt(m[1], 10) });
+            }
+        });
+    }
+    const re2 = /(\d{1,2})\s?[\/-]\s?(\d{1,2})\s?[\/-]\s?(\d{4}|\d{2})(?!\d)/g;
+    while ((m = re2.exec(t)) !== null) {
+        out.push({ y: slipFixYear(parseInt(m[3], 10)), m: parseInt(m[2], 10), d: parseInt(m[1], 10) });
+    }
+    return out;
+}
+
+// วันนี้ตามเวลาไทย: ลองถามเว็บเวลาจริงก่อน (กันลูกค้าแก้นาฬิกาเครื่อง) ถ้าไม่ได้ใช้เวลาเครื่อง
+async function slipTodayTH() {
+    let now = new Date();
+    try {
+        const ctl = new AbortController();
+        const timer = setTimeout(function () { ctl.abort(); }, 3000);
+        const r = await fetch('https://worldtimeapi.org/api/timezone/Asia/Bangkok', { signal: ctl.signal });
+        clearTimeout(timer);
+        const j = await r.json();
+        if (j && j.unixtime) now = new Date(j.unixtime * 1000);
+    } catch (e) { /* ใช้เวลาเครื่องแทน */ }
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' })
+        .formatToParts(now);
+    const g = function (type) { return parseInt(p.filter(function (x) { return x.type === type; })[0].value, 10); };
+    return { y: g('year'), m: g('month'), d: g('day') };
+}
+
+function slipDayNumber(o) { return Math.floor(Date.UTC(o.y, o.m - 1, o.d) / 86400000); }
+
+async function slipCheckDate(text) {
+    const dates = slipFindDates(text);
+    if (dates.length === 0) {
+        return { ok: false, final: true, msg: '❌ อ่านวันที่ในสลิปไม่ได้ กรุณาแนบสลิปที่เห็นวันที่ทำรายการชัดเจน' };
+    }
+    const today = await slipTodayTH();
+    const tn = slipDayNumber(today);
+    const good = dates.some(function (d) {
+        const diff = tn - slipDayNumber(d);
+        return diff >= 0 && diff <= SLIP_MAX_DAYS_OLD;
+    });
+    if (!good) {
+        const d = dates[0];
+        return {
+            ok: false, final: true,
+            msg: '❌ วันที่ในสลิปไม่ตรงกับวันนี้ (สลิปลงวันที่ ' + d.d + '/' + d.m + '/' + (d.y + 543) +
+                 ') กรุณาแนบสลิปที่โอนวันนี้เท่านั้น'
+        };
+    }
+    return { ok: true, msg: '' };
+}
+
 function slipPreprocess(file, invert) {
     return new Promise(function (resolve, reject) {
         const img = new Image();
@@ -611,7 +695,7 @@ async function checkSlip(file, price, statusEl) {
         });
         let text = r1.data.text;
         let res = slipEvaluate(text, price);
-        if (res.ok) return res;
+        if (res.ok) return await slipCheckDate(text);
 
         // รอบที่ 2-3: ถ้ายังหายอดเงินไม่เจอ ลองปรับภาพ (ปกติ / กลับสี) แล้วอ่านเฉพาะตัวเลข
         statusEl.textContent = '🔍 กำลังอ่านยอดเงินอีกครั้ง...';
@@ -626,13 +710,15 @@ async function checkSlip(file, price, statusEl) {
         } finally {
             await worker.terminate();
         }
-        return slipEvaluate(text, price);
+        res = slipEvaluate(text, price);
+        if (res.ok) return await slipCheckDate(text);
+        return res;
     } catch (err) {
         console.error(err);
         return { ok: false, msg: '❌ อ่านรูปไม่สำเร็จ กรุณาแนบสลิปที่ชัดเจนแล้วลองใหม่' };
     }
-}
-
+        }
+    
         
 
         
