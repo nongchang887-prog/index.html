@@ -447,6 +447,37 @@ body *:not(#user-uid):not(input):not(textarea) {
                 btn.classList.remove('opacity-60');
             }
         }
+
+
+
+// ===== สคริปต์ฝั่งหน้าร้านค้า (เวอร์ชันใหม่ แทนของเดิม) =====
+// 📍 ลบ shop-side.js ตัวเก่าที่วางไว้ท้าย <script> ออก แล้ววางอันนี้แทน (ท้ายสุด ก่อน </script>)
+// ทำให้: รับสิทธิ์ล็อกอินจากหน้าหลัก + โชว์แถบ "เชื่อมต่อหน้าหลักสำเร็จ"
+//        และตอนกดสั่งซื้อจะไม่เด้งกลับไปหน้าล็อกอินอีก
+
+(function () {
+    const p = new URLSearchParams(location.search);
+    if (p.get('from') !== 'main') return;
+
+    const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const at = h.get('at');
+    if (at) {
+        try { sessionStorage.setItem('main_access_token', at); } catch (e) {}
+        // ลบโทเคนออกจากแถบลิงก์ทันที ไม่ให้ค้างในประวัติ/คัดลอกไปแชร์ได้
+        history.replaceState(null, '', location.pathname + '?from=main');
+    }
+
+    const ok = !!sessionStorage.getItem('main_access_token');
+    const bar = document.createElement('div');
+    bar.textContent = ok ? '✅ เชื่อมต่อกับหน้าหลักสำเร็จ' : '⚠️ ยังไม่ได้ล็อกอินที่หน้าหลัก';
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:70;padding:6px;text-align:center;' +
+        'font-size:12px;font-weight:700;color:#fff;background:' + (ok ? '#059669' : '#d97706') + ';';
+    document.body.appendChild(bar);
+    setTimeout(function () { bar.remove(); }, 3500);
+})();
+    
+        
+        
     </script>
 </body>
 </html>
