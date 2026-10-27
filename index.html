@@ -326,26 +326,30 @@ async function getAccessToken() {
 
 
         // ฟังก์ชันยิงไปถาม Render Backend ว่า Token นี้ถูกต้องและใช้งานได้จริงไหม
-        async function verifyUserWithRender() {
-            const token = await getAccessToken();
-            if (!token) return false;
+        // ===== แทนที่ฟังก์ชัน verifyUserWithRender เดิมทั้งก้อน (ในไฟล์ร้านค้า) =====
+// 📍 หา "async function verifyUserWithRender() {" ลบทั้งก้อนจนถึง } ปิด แล้ววางอันนี้แทน
+// ตัวนี้เหมือนเดิม แต่จะแจ้งสาเหตุจริงบนจอตอนไม่ผ่าน (ไว้หาสาเหตุ เสร็จแล้วค่อยเอาบรรทัด alert ออกได้)
+async function verifyUserWithRender() {
+    const token = await getAccessToken();
+    if (!token) { alert('DEBUG 1: ไม่มีโทเคน (หน้าหลักไม่ได้ส่งมา)'); return false; }
 
-            try {
-                const res = await fetch(API_BASE + '/api/my-points', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (!res.ok) return false;
-                
-                const json = await res.json();
-                if (json.banned) return false;
-                
-                currentUserToken = token;
-                return true;
-            } catch (err) {
-                console.error(" Render Verify Error:", err);
-                return false;
-            }
-        }
+    try {
+        const res = await fetch(API_BASE + '/api/my-points', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) { alert('DEBUG 2: เซิร์ฟเวอร์ตอบรหัส ' + res.status); return false; }
+
+        const json = await res.json();
+        if (json.banned) { alert('DEBUG 3: บัญชีโดนแบน'); return false; }
+
+        currentUserToken = token;
+        return true;
+    } catch (err) {
+        alert('DEBUG 4: เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (เซิร์ฟเวอร์หลับ หรือ CORS บล็อก): ' + err.message);
+        return false;
+    }
+}
+        
 
         // กดซื้อสินค้า
         async function handleBuy(name, price, diamonds, qrImageUrl) {
