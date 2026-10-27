@@ -310,14 +310,20 @@ body *:not(#user-uid):not(input):not(textarea) {
         let currentUserToken = null;
 
         // ดึง Token จาก Session
-        async function getAccessToken() {
-            try {
-                const { data } = await supabaseClient.auth.getSession();
-                return data && data.session ? data.session.access_token : null;
-            } catch (e) {
-                return null;
-            }
-        }
+        // ===== แทนที่ฟังก์ชัน getAccessToken เดิมในไฟล์ร้านค้าทั้งก้อน =====
+// 📍 หาบรรทัด "async function getAccessToken() {" (อยู่ใต้ let currentUserToken = null;)
+//    ลบฟังก์ชันนั้นทั้งก้อน (จนถึง } ปิดของมัน) แล้ววางอันนี้แทน
+async function getAccessToken() {
+    try {
+        const fromMain = sessionStorage.getItem('main_access_token');
+        if (fromMain) return fromMain;            // โทเคนที่ส่งมาจากหน้าหลัก
+        const { data } = await supabaseClient.auth.getSession();
+        return data && data.session ? data.session.access_token : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 
         // ฟังก์ชันยิงไปถาม Render Backend ว่า Token นี้ถูกต้องและใช้งานได้จริงไหม
         async function verifyUserWithRender() {
