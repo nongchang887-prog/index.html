@@ -332,21 +332,16 @@ async function getAccessToken() {
 // ตัวนี้เหมือนเดิม แต่จะแจ้งสาเหตุจริงบนจอตอนไม่ผ่าน (ไว้หาสาเหตุ เสร็จแล้วค่อยเอาบรรทัด alert ออกได้)
 async function verifyUserWithRender() {
     const token = await getAccessToken();
-    if (!token) { alert('DEBUG 1: ไม่มีโทเคน (หน้าหลักไม่ได้ส่งมา)'); return false; }
-
+    if (!token) return false;
     try {
-        const res = await fetch(API_BASE + '/api/my-points', {
-            headers: { 'Authorization': 'Bearer ' + token }
+        const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
         });
-        if (!res.ok) { alert('DEBUG 2: เซิร์ฟเวอร์ตอบรหัส ' + res.status); return false; }
-
-        const json = await res.json();
-        if (json.banned) { alert('DEBUG 3: บัญชีโดนแบน'); return false; }
-
+        if (!res.ok) { sessionStorage.removeItem('main_access_token'); return false; }
         currentUserToken = token;
         return true;
     } catch (err) {
-        alert('DEBUG 4: เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (เซิร์ฟเวอร์หลับ หรือ CORS บล็อก): ' + err.message);
+        console.error(err);
         return false;
     }
 }
