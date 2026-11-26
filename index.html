@@ -3,100 +3,160 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>เทสต์เน็ตส่ง Discord Webhook</title>
+  <title>เช็กการเชื่อมต่อและส่ง Discord</title>
   <style>
-    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     body {
-      margin: 0;
-      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #111318;
+      color: #f3f4f6;
       display: flex;
-      align-items: center;
       justify-content: center;
-      background: #0f172a;
-      color: #f8fafc;
-      padding: 20px;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
     }
     .card {
+      background: #1b1f27;
+      border: 1px solid #2d3340;
+      border-radius: 12px;
+      padding: 24px;
       width: 100%;
       max-width: 420px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
+      box-sizing: border-box;
     }
     h1 {
-      margin: 0 0 8px;
-      font-size: 20px;
+      font-size: 18px;
+      margin: 0 0 12px;
     }
     p {
-      margin: 0 0 20px;
       font-size: 13px;
-      color: #94a3b8;
-      word-break: break-all;
+      color: #9ca3af;
+      margin: 0 0 16px;
     }
     button {
       width: 100%;
-      padding: 14px 18px;
-      border: 0;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      background: #5865f2;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 600;
       color: #ffffff;
+      background: #5865f2;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #4752c4;
     }
     button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
-    #status {
-      margin-top: 16px;
+    .status {
+      margin-top: 14px;
       padding: 12px;
-      border-radius: 10px;
-      background: #0f172a;
+      border-radius: 8px;
+      background: #111318;
+      border: 1px solid #2d3340;
       font-size: 14px;
-      font-weight: 600;
+      word-break: break-word;
     }
-    .ok { color: #4ade80; }
-    .fail { color: #f87171; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>🌐 เทสต์เน็ตผ่าน Discord</h1>
-    <p id="webhookLabel">https://discord.com/api/webhooks/1574031677825622127/w-tF049AdY8b3p_qnavP9jIJrkK0DhfaUbh2xoZo5FLo-x3U54DoR5MI44QZSjiNG9kc</p>
-
-    <button type="button" id="sendBtn">กดเทสต์ส่งข้อความไป Discord</button>
-
-    <div id="status">สถานะ: ยังไม่ได้กด</div>
+    <h1>เทสต์ส่งข้อความไป Discord</h1>
+    <p>เรียกผ่าน Supabase Edge Function โดยใช้ Secret ชื่อ DISCORD_WEBHOOK_URL</p>
+    <button type="button" id="sendBtn">กดเทสต์ส่งข้อความ</button>
+    <div class="status" id="status">สถานะ: ยังไม่ได้กด</div>
   </div>
 
   <script>
-    const WEBHOOK_URL = "https://discord.com/api/webhooks/1574031677825622127/w-tF049AdY8b3p_qnavP9jIJrkK0DhfaUbh2xoZo5FLo-x3U54DoR5MI44QZSjiNG9kc";
+    // เปลี่ยน <PROJECT_REF> เป็นรหัสโปรเจกต์ Supabase ของคุณ
+    const SUPABASE_FUNCTION_URL = "https://<PROJECT_REF>.supabase.co/functions/v1/send-discord";
+
+    // ตัวอย่างโค้ดฝั่ง Supabase Edge Function (นำไปวางในฟังก์ชัน send-discord บน Supabase):
+    /*
+    import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    };
+
+    serve(async (req) => {
+      if (req.method === "OPTIONS") {
+        return new Response("ok", { headers: corsHeaders });
+      }
+
+      try {
+        const webhookUrl = Deno.env.get("DISCORD_WEBHOOK_URL");
+        if (!webhookUrl) {
+          return new Response(
+            JSON.stringify({ ok: false, error: "ไม่พบ Secret ชื่อ DISCORD_WEBHOOK_URL" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const pageUrl = typeof body.pageUrl === "string" ? body.pageUrl : window.location.href;
+
+        const discordRes = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: `✅ ต่อเน็ตได้ (จาก: ${pageUrl})`,
+          }),
+        });
+
+        if (!discordRes.ok) {
+          const detail = await discordRes.text().catch(() => "");
+          return new Response(
+            JSON.stringify({ ok: false, error: `Discord HTTP ${discordRes.status}`, detail }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ ok: true, message: "ส่งเข้า Discord สำเร็จ" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (err) {
+        return new Response(
+          JSON.stringify({ ok: false, error: err instanceof Error ? err.message : "เกิดข้อผิดพลาด" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    });
+    */
+
     const sendBtn = document.getElementById("sendBtn");
     const statusEl = document.getElementById("status");
 
     sendBtn.addEventListener("click", async () => {
       sendBtn.disabled = true;
-      statusEl.innerHTML = 'สถานะ: <span>กำลังส่งข้อความไป Discord...</span>';
+      statusEl.textContent = "สถานะ: กำลังส่งข้อความ...";
 
       try {
-        const res = await fetch(WEBHOOK_URL, {
+        const res = await fetch(SUPABASE_FUNCTION_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            content: `✅ ต่อเน็ตได้ (ส่งจาก: ${window.location.href})`
-          })
+            pageUrl: window.location.href,
+          }),
         });
 
-        if (res.ok) {
-          statusEl.innerHTML = 'สถานะ: <span class="ok">✅ ส่งสำเร็จ — เว็บต่อเน็ตได้</span>';
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.ok) {
+          statusEl.textContent = "สถานะ: ✅ ส่งสำเร็จ — เว็บต่อเน็ตได้";
         } else {
-          statusEl.innerHTML = `สถานะ: <span class="fail">❌ ส่งไม่สำเร็จ (HTTP ${res.status}) — เว็บต่อเน็ตไม่ได้หรือถูกปฏิเสธ</span>`;
+          statusEl.textContent = `สถานะ: ❌ ส่งไม่สำเร็จ (${data.error || res.status})`;
         }
       } catch (err) {
-        statusEl.innerHTML = 'สถานะ: <span class="fail">❌ ส่งไม่สำเร็จ — เว็บต่อเน็ตไม่ได้</span>';
+        statusEl.textContent = "สถานะ: ❌ ส่งไม่สำเร็จ — เว็บต่อเน็ตไม่ได้";
       } finally {
         sendBtn.disabled = false;
       }
