@@ -66,69 +66,17 @@
 <body>
   <div class="card">
     <h1>เทสต์ส่งข้อความไป Discord</h1>
-    <p>เรียกผ่าน Supabase Edge Function โดยใช้ Secret ชื่อ DISCORD_WEBHOOK_URL</p>
+    <p>เรียกผ่าน Supabase Edge Function (Project: ztkqtvdllpzjsvlqxzni)</p>
     <button type="button" id="sendBtn">กดเทสต์ส่งข้อความ</button>
     <div class="status" id="status">สถานะ: ยังไม่ได้กด</div>
   </div>
 
   <script>
-    // เปลี่ยน <PROJECT_REF> เป็นรหัสโปรเจกต์ Supabase ของคุณ
-    const SUPABASE_FUNCTION_URL = "https://<PROJECT_REF>.supabase.co/functions/v1/send-discord";
+    const PROJECT_REF = "ztkqtvdllpzjsvlqxzni";
+    const FUNCTION_NAME = "send-discord"; // ถ้าชื่อฟังก์ชันบน Supabase เป็น bright-function ให้แก้ตรงนี้เป็น "bright-function"
+    const SUPABASE_API_KEY = "sb_publishable_cDqZ3DmFATvHvY1GVYUUXA_Z8V8c3pH";
 
-    // ตัวอย่างโค้ดฝั่ง Supabase Edge Function (นำไปวางในฟังก์ชัน send-discord บน Supabase):
-    /*
-    import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    };
-
-    serve(async (req) => {
-      if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: corsHeaders });
-      }
-
-      try {
-        const webhookUrl = Deno.env.get("DISCORD_WEBHOOK_URL");
-        if (!webhookUrl) {
-          return new Response(
-            JSON.stringify({ ok: false, error: "ไม่พบ Secret ชื่อ DISCORD_WEBHOOK_URL" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        const body = await req.json().catch(() => ({}));
-        const pageUrl = typeof body.pageUrl === "string" ? body.pageUrl : window.location.href;
-
-        const discordRes = await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: `✅ ต่อเน็ตได้ (จาก: ${pageUrl})`,
-          }),
-        });
-
-        if (!discordRes.ok) {
-          const detail = await discordRes.text().catch(() => "");
-          return new Response(
-            JSON.stringify({ ok: false, error: `Discord HTTP ${discordRes.status}`, detail }),
-            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        return new Response(
-          JSON.stringify({ ok: true, message: "ส่งเข้า Discord สำเร็จ" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } catch (err) {
-        return new Response(
-          JSON.stringify({ ok: false, error: err instanceof Error ? err.message : "เกิดข้อผิดพลาด" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    });
-    */
+    const SUPABASE_FUNCTION_URL = `https://${PROJECT_REF}.supabase.co/functions/v1/${FUNCTION_NAME}`;
 
     const sendBtn = document.getElementById("sendBtn");
     const statusEl = document.getElementById("status");
@@ -142,21 +90,25 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${SUPABASE_API_KEY}`,
+            "apikey": SUPABASE_API_KEY,
           },
           body: JSON.stringify({
             pageUrl: window.location.href,
+            name: "Functions",
           }),
         });
 
         const data = await res.json().catch(() => ({}));
 
-        if (res.ok && data.ok) {
-          statusEl.textContent = "สถานะ: ✅ ส่งสำเร็จ — เว็บต่อเน็ตได้";
+        if (res.ok && data.ok !== false) {
+          statusEl.textContent = "สถานะ: ✅ ส่งสำเร็จ — ข้อความเข้า Discord แล้ว";
         } else {
-          statusEl.textContent = `สถานะ: ❌ ส่งไม่สำเร็จ (${data.error || res.status})`;
+          statusEl.textContent = `สถานะ: ❌ ส่งไม่สำเร็จ (HTTP ${res.status}: ${data.error || data.message || "ตรวจสอบ Edge Function"})`;
         }
       } catch (err) {
-        statusEl.textContent = "สถานะ: ❌ ส่งไม่สำเร็จ — เว็บต่อเน็ตไม่ได้";
+        const reason = err instanceof Error ? err.message : String(err);
+        statusEl.textContent = `สถานะ: ❌ เรียก Edge Function ไม่สำเร็จ (${reason})`;
       } finally {
         sendBtn.disabled = false;
       }
