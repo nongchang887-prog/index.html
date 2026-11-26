@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เทสต์เน็ตส่ง Discord Webhook</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 20px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+    p {
+      margin: 0 0 20px;
+      font-size: 13px;
+      color: #94a3b8;
+      word-break: break-all;
+    }
+    button {
+      width: 100%;
+      padding: 14px 18px;
+      border: 0;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #5865f2;
+      color: #ffffff;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #0f172a;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .ok { color: #4ade80; }
+    .fail { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🌐 เทสต์เน็ตผ่าน Discord</h1>
+    <p id="webhookLabel">https://discord.com/api/webhooks/1574031677825622127/w-tF049AdY8b3p_qnavP9jIJrkK0DhfaUbh2xoZo5FLo-x3U54DoR5MI44QZSjiNG9kc</p>
+
+    <button type="button" id="sendBtn">กดเทสต์ส่งข้อความไป Discord</button>
+
+    <div id="status">สถานะ: ยังไม่ได้กด</div>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1574031677825622127/w-tF049AdY8b3p_qnavP9jIJrkK0DhfaUbh2xoZo5FLo-x3U54DoR5MI44QZSjiNG9kc";
+    const sendBtn = document.getElementById("sendBtn");
+    const statusEl = document.getElementById("status");
+
+    sendBtn.addEventListener("click", async () => {
+      sendBtn.disabled = true;
+      statusEl.innerHTML = 'สถานะ: <span>กำลังส่งข้อความไป Discord...</span>';
+
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: `✅ ต่อเน็ตได้ (ส่งจาก: ${window.location.href})`
+          })
+        });
+
+        if (res.ok) {
+          statusEl.innerHTML = 'สถานะ: <span class="ok">✅ ส่งสำเร็จ — เว็บต่อเน็ตได้</span>';
+        } else {
+          statusEl.innerHTML = `สถานะ: <span class="fail">❌ ส่งไม่สำเร็จ (HTTP ${res.status}) — เว็บต่อเน็ตไม่ได้หรือถูกปฏิเสธ</span>`;
+        }
+      } catch (err) {
+        statusEl.innerHTML = 'สถานะ: <span class="fail">❌ ส่งไม่สำเร็จ — เว็บต่อเน็ตไม่ได้</span>';
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
