@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เช็กข้อมูลผู้เล่น Free Fire (ไทย)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-4 sm:p-8">
+
+  <div class="w-full max-w-2xl">
+    <!-- ส่วนหัว -->
+    <div class="text-center mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-amber-400">🔥 เช็กโปรไฟล์ผู้เล่น Free Fire</h1>
+      <p class="text-slate-400 text-sm mt-1">กรอกเลข UID เพื่อดูข้อมูลบัญชี แรงก์ กิลด์ และชุดที่สวมใส่</p>
+    </div>
+
+    <!-- ฟอร์มค้นหา -->
+    <form id="lookupForm" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">เซิร์ฟเวอร์</label>
+          <select id="region" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+            <option value="th" selected>🇹🇭 ไทย (TH)</option>
+            <option value="sg">🇸🇬 สิงคโปร์ (SG)</option>
+            <option value="vn">🇻🇳 เวียดนาม (VN)</option>
+            <option value="id">🇮🇩 อินโดนีเซีย (ID)</option>
+            <option value="ind">🇮🇳 อินเดีย (IND)</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-xs text-slate-400 mb-1">เลข UID ผู้เล่น</label>
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="uid"
+              placeholder="เช่น 2456338851"
+              pattern="[0-9]{8,12}"
+              required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400"
+            />
+            <button
+              type="submit"
+              id="searchBtn"
+              class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-5 py-2.5 rounded-xl text-sm transition shrink-0"
+            >
+              ค้นหา
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <!-- สถานะโหลด / แจ้งเตือน -->
+    <div id="statusBox" class="hidden text-center p-4 rounded-xl mb-6 text-sm"></div>
+
+    <!-- ส่วนแสดงผลข้อมูลผู้เล่น -->
+    <div id="resultCard" class="hidden space-y-4">
+      <!-- ข้อมูลหลัก -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-center gap-5">
+        <img id="avatarImg" src="" alt="Avatar" class="w-24 h-24 rounded-2xl bg-slate-800 object-cover border-2 border-amber-400/50" />
+        <div class="flex-1 text-center sm:text-left">
+          <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+            <h2 id="playerName" class="text-xl font-bold text-white">-</h2>
+            <span id="playerLevel" class="bg-amber-500/20 text-amber-300 text-xs px-2.5 py-0.5 rounded-full font-medium">Lv. -</span>
+            <span id="playerRegion" class="bg-sky-500/20 text-sky-300 text-xs px-2.5 py-0.5 rounded-full font-medium">-</span>
+          </div>
+          <p id="playerBio" class="text-slate-400 text-xs mt-2 italic">"- "</p>
+
+          <div class="grid grid-cols-3 gap-2 mt-4 text-center">
+            <div class="bg-slate-800/70 rounded-xl p-2">
+              <div id="playerLikes" class="text-base font-bold text-pink-400">0</div>
+              <div class="text-[11px] text-slate-400">ถูกใจ</div>
+            </div>
+            <div class="bg-slate-800/70 rounded-xl p-2">
+              <div id="playerExp" class="text-base font-bold text-emerald-400">0</div>
+              <div class="text-[11px] text-slate-400">EXP</div>
+            </div>
+            <div class="bg-slate-800/70 rounded-xl p-2">
+              <div id="creditScore" class="text-base font-bold text-amber-400">-</div>
+              <div class="text-[11px] text-slate-400">เครดิตสกอร์</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- แรงก์ & กิลด์ -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <h3 class="text-sm font-semibold text-amber-400 mb-3">🏆 ข้อมูลแรงก์</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-400">แรงก์ใหญ่ (BR):</span>
+              <span id="brRank" class="font-medium">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">4v4 (CS):</span>
+              <span id="csRank" class="font-medium">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <h3 class="text-sm font-semibold text-emerald-400 mb-3">🛡️ ข้อมูลกิลด์</h3>
+          <div id="guildBox" class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-400">ชื่อกิลด์:</span>
+              <span id="guildName" class="font-medium">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">เลเวล / สมาชิก:</span>
+              <span id="guildMeta" class="font-medium">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ชุดแฟชั่นที่สวมใส่ -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <h3 class="text-sm font-semibold text-sky-400 mb-3">👕 ชุดแฟชั่นที่สวมใส่</h3>
+        <div id="outfitGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PLAYER_API = 'https://freefireinfo.nepcoderapis.workers.dev/';
+    const ITEM_IMG_API = 'https://ff-itmes-api.vercel.app/?item_id=';
+
+    const form = document.getElementById('lookupForm');
+    const statusBox = document.getElementById('statusBox');
+    const resultCard = document.getElementById('resultCard');
+    const searchBtn = document.getElementById('searchBtn');
+
+    function getRankLabel(rankCode) {
+      const map = {
+        100: 'บรอนซ์ I', 110: 'บรอนซ์ II', 120: 'บรอนซ์ III',
+        200: 'ซิลเวอร์ I', 210: 'ซิลเวอร์ II', 220: 'ซิลเวอร์ III',
+        300: 'โกลด์ I', 310: 'โกลด์ II', 320: 'โกลด์ III',
+        400: 'แพลตตินัม I', 410: 'แพลตตินัม II', 420: 'แพลตตินัม III',
+        500: 'ไดมอนด์ I', 510: 'ไดมอนด์ II', 520: 'ไดมอนด์ III',
+        600: 'ฮีโรอิค', 700: 'แกรนด์มาสเตอร์'
+      };
+      return map[rankCode] || `รหัสแรงก์ ${rankCode ?? '-'}`;
+    }
+
+    function showStatus(msg, isError = false) {
+      statusBox.textContent = msg;
+      statusBox.className = `text-center p-4 rounded-xl mb-6 text-sm ${
+        isError
+          ? 'bg-red-500/15 border border-red-500/30 text-red-300'
+          : 'bg-slate-800 border border-slate-700 text-slate-300'
+      }`;
+      statusBox.classList.remove('hidden');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const uid = document.getElementById('uid').value.trim();
+      const region = document.getElementById('region').value;
+
+      resultCard.classList.add('hidden');
+      searchBtn.disabled = true;
+      searchBtn.textContent = 'กำลังค้นหา...';
+      showStatus('⏳ กำลังดึงข้อมูลผู้เล่นจากเซิร์ฟเวอร์...');
+
+      try {
+        const url = `${PLAYER_API}?uid=${encodeURIComponent(uid)}&region=${encodeURIComponent(region)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('เชื่อมต่อ API ไม่สำเร็จ');
+
+        const data = await res.json();
+        const acc = data?.AccountInfo;
+        if (!acc) throw new Error('ไม่พบข้อมูลผู้เล่นของ UID นี้ในเซิร์ฟเวอร์ที่เลือก');
+
+        // แสดงข้อมูลหลัก
+        document.getElementById('playerName').textContent = acc.AccountName || 'ไม่ระบุชื่อ';
+        document.getElementById('playerLevel').textContent = `Lv. ${acc.AccountLevel ?? '-'}`;
+        document.getElementById('playerRegion').textContent = acc.AccountRegion || region.toUpperCase();
+        document.getElementById('playerLikes').textContent = Number(acc.AccountLikes || 0).toLocaleString();
+        document.getElementById('playerExp').textContent = Number(acc.AccountEXP || 0).toLocaleString();
+        document.getElementById('creditScore').textContent = data?.creditScoreInfo?.creditScore ?? '-';
+
+        const bio = data?.socialinfo?.AccountSignature;
+        document.getElementById('playerBio').textContent = bio ? `"${bio}"` : 'ไม่มีคำแนะนำตัว';
+
+        // รูปอวาตาร์
+        const avatarImg = document.getElementById('avatarImg');
+        avatarImg.src = acc.AccountAvatarId ? `${ITEM_IMG_API}${acc.AccountAvatarId}` : '';
+        avatarImg.onerror = () => { avatarImg.src = 'https://placehold.co/96x96/1e293b/94a3b8?text=FF'; };
+
+        // ข้อมูลแรงก์
+        document.getElementById('brRank').textContent = `${getRankLabel(acc.BrMaxRank)} (${acc.BrRankPoint ?? 0} แต้ม)`;
+        document.getElementById('csRank').textContent = `${getRankLabel(acc.CsMaxRank)} (${acc.CsRankPoint ?? 0} แต้ม)`;
+
+        // ข้อมูลกิลด์
+        const guild = data?.GuildInfo;
+        if (guild && guild.GuildName) {
+          document.getElementById('guildName').textContent = guild.GuildName;
+          document.getElementById('guildMeta').textContent = `Lv.${guild.GuildLevel ?? '-'} (${guild.GuildMember ?? 0}/${guild.GuildCapacity ?? 0})`;
+        } else {
+          document.getElementById('guildName').textContent = 'ไม่มีกิลด์';
+          document.getElementById('guildMeta').textContent = '-';
+        }
+
+        // ชุดแฟชั่น
+        const outfitGrid = document.getElementById('outfitGrid');
+        outfitGrid.innerHTML = '';
+        const outfits = data?.AccountProfileInfo?.EquippedOutfit || [];
+        if (outfits.length > 0) {
+          outfits.forEach((itemId) => {
+            const box = document.createElement('div');
+            box.className = 'bg-slate-800 border border-slate-700 rounded-xl p-2 flex flex-col items-center';
+            box.innerHTML = `
+              <img src="${ITEM_IMG_API}${itemId}" alt="${itemId}" class="w-12 h-12 object-contain mb-1"
+                   onerror="this.src='https://placehold.co/48x48/1e293b/94a3b8?text=Item'" />
+              <span class="text-[10px] text-slate-400 truncate w-full text-center">${itemId}</span>
+            `;
+            outfitGrid.appendChild(box);
+          });
+        } else {
+          outfitGrid.innerHTML = '<p class="col-span-full text-xs text-slate-400">ไม่พบข้อมูลชุดที่สวมใส่</p>';
+        }
+
+        statusBox.classList.add('hidden');
+        resultCard.classList.remove('hidden');
+      } catch (err) {
+        showStatus(`❌ ${err.message}`, true);
+      } finally {
+        searchBtn.disabled = false;
+        searchBtn.textContent = 'ค้นหา';
+      }
+    });
+  </script>
+</body>
+</html>
