@@ -66,14 +66,14 @@
 <body>
   <div class="card">
     <h1>เทสต์ส่งข้อความไป Discord</h1>
-    <p>เรียกผ่าน Supabase Edge Function (Project: ztkqtvdllpzjsvlqxzni)</p>
+    <p>เรียกผ่าน Supabase Edge Function: send-discord</p>
     <button type="button" id="sendBtn">กดเทสต์ส่งข้อความ</button>
     <div class="status" id="status">สถานะ: ยังไม่ได้กด</div>
   </div>
 
   <script>
     const PROJECT_REF = "ztkqtvdllpzjsvlqxzni";
-    const FUNCTION_NAME = "bright-function"; // ถ้าชื่อฟังก์ชันบน Supabase เป็น bright-function ให้แก้ตรงนี้เป็น "bright-function"
+    const FUNCTION_NAME = "send-discord";
     const SUPABASE_API_KEY = "sb_publishable_cDqZ3DmFATvHvY1GVYUUXA_Z8V8c3pH";
 
     const SUPABASE_FUNCTION_URL = `https://${PROJECT_REF}.supabase.co/functions/v1/${FUNCTION_NAME}`;
