@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โหลดคลิปวิดีโอ</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b14; --txt:#e8eefb; --mut:#8b98b0; --line:rgba(255,255,255,.12);
+    --glass:rgba(255,255,255,.06);
+    --a1:#22d3ee; --a2:#8b5cf6;
+    --grad:linear-gradient(135deg,var(--a1),var(--a2));
+    --ok:#34d399; --err:#fb7185;
+    --cover-h:120px; /* ความสูงพื้นที่ว่างของ "หน้าปก" ปรับตัวเลขได้ */
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--txt);font-family:'Prompt',system-ui,-apple-system,"Noto Sans Thai",sans-serif;min-height:100vh}
+  .hidden{display:none !important}
+
+  /* บล็อกเคอร์เซอร์กระพริบและการคลุมดำเลือกข้อความทั้งหมด (ยกเว้นช่องกรอก UID) */
+  body *:not(#user-uid):not(input):not(textarea) {
+      -webkit-user-select: none; /* Safari */
+      -moz-user-select: none;    /* Firefox */
+      -ms-user-select: none;     /* IE/Edge */
+      user-select: none;         /* Standard */
+      -webkit-touch-callout: none; /* ป้องกันการกดค้างบนมือถือ */
+  }
+
+  /* ===== พื้นหลัง (ปกหลัง) ===== */
+  #bg{position:fixed;inset:0;z-index:-3;
+    background:
+      radial-gradient(520px 380px at 90% -4%, rgba(139,92,246,.35), transparent 62%),
+      radial-gradient(480px 360px at -4% 102%, rgba(34,211,238,.25), transparent 62%),
+      var(--bg)}
+  #bgImg{position:fixed;inset:0;z-index:-2;background-size:cover;background-position:center;background-repeat:no-repeat}
+  #bgImg::after{content:"";position:absolute;inset:0;background:rgba(7,11,20,.55)}
+
+  .wrap{max-width:480px;margin:0 auto;padding:16px 16px 40px}
+  button{font:inherit;border:0;cursor:pointer;color:inherit}
+
+  /* ===== แถบบน: โปรไฟล์ + ชื่อผู้ใช้ ===== */
+  .top{display:flex;align-items:center;gap:10px}
+  .avatar{width:50px;height:50px;border-radius:50%;padding:2px;background:var(--grad);flex:none}
+  .av-in{width:100%;height:100%;border-radius:50%;background:#0d1424;display:grid;place-items:center;overflow:hidden;font-weight:700;font-size:18px}
+  .av-in img{width:100%;height:100%;object-fit:cover}
+  .pill{flex:1;min-width:0;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:999px;padding:12px 20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ===== หน้าปก (พื้นที่ว่าง) ===== */
+  .cover{height:var(--cover-h);margin:14px 0;border-radius:18px;overflow:hidden}
+  .cover img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* ===== วางลิงก์ ===== */
+  .lbl{font-size:16px;font-weight:700;margin:0 0 8px 2px}
+  .search{display:flex;align-items:stretch;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:14px;overflow:hidden;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .search:focus-within{border-color:var(--a1);box-shadow:0 0 0 3px rgba(34,211,238,.15)}
+  .search input{flex:1;min-width:0;border:0;background:transparent;color:var(--txt);padding:14px;font-size:15px;font-family:inherit;outline:0}
+  .search input::placeholder{color:#5d6a82}
+  .search button{width:56px;background:var(--grad);display:grid;place-items:center;color:#fff}
+  .search button:disabled{opacity:.55;cursor:wait}
+  #status{font-size:13px;min-height:19px;margin:8px 2px 0;color:var(--mut)}
+  #status.ok{color:var(--ok)} #status.err{color:var(--err)}
+
+  /* ===== ตัวอย่าง ===== */
+  .sec{font-size:13px;color:var(--mut);margin:14px 2px 6px}
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:18px;overflow:hidden;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .chead{display:flex;align-items:center;gap:10px;padding:11px 12px;position:relative}
+  .chead::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--grad);opacity:.7}
+  .logo{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;flex:none;font-size:16px}
+  .logo img{width:20px;height:20px;object-fit:contain}
+  .vtitle{flex:1;min-width:0;font-size:14px;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+  .vtitle.empty{color:var(--mut);font-weight:400}
+  .pv{position:relative;aspect-ratio:16/10;background:rgba(0,0,0,.35);display:grid;place-items:center}
+  .pv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  #pvEmpty{color:#5d6a82;font-size:24px}
+  .dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.75);border-radius:6px;padding:2px 8px;font-size:12px}
+  .spin{position:absolute;width:40px;height:40px;border-radius:50%;border:4px solid rgba(255,255,255,.15);border-top-color:var(--a1);animation:sp .9s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
+
+  /* ===== ปุ่ม ล้าง + โหลด ▾ ===== */
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .ghost{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:13px 16px;font-size:15px;font-weight:600;min-width:90px}
+  .split{position:relative;flex:1;display:flex}
+  .split .p{background:var(--grad);color:#fff;font-size:15px;font-weight:700;padding:13px 14px}
+  .split #dl{flex:1;border-radius:14px 0 0 14px}
+  .split #arrow{width:52px;padding:0;border-radius:0 14px 14px 0;border-left:1px solid rgba(255,255,255,.35)}
+  .split .p:disabled{opacity:.45;cursor:not-allowed}
+  .menu{position:absolute;top:calc(100% + 8px);right:0;min-width:100%;width:max-content;max-width:82vw;z-index:20;background:rgba(14,19,34,.97);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.6)}
+  .menu button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;background:transparent;text-align:left;font-size:14px;font-weight:500;padding:13px 14px;border-bottom:1px solid var(--line)}
+  .menu button:last-child{border-bottom:0}
+  .menu button small{color:var(--mut);margin-left:6px}
+  .menu button.sel{color:var(--a1);background:rgba(34,211,238,.08)}
+  .menu button.sel::after{content:"✓"}
+  .hint{font-size:12px;color:var(--mut);margin:10px 2px 0}
+
+  /* ===== ป๊อปอัพต้องเข้าสู่ระบบ ===== */
+  .gate{position:fixed;inset:0;z-index:50;background:rgba(3,6,12,.88);display:none;align-items:center;justify-content:center;padding:16px}
+  .gate.show{display:flex}
+  .gate .card{max-width:340px;text-align:center;padding:20px;background:rgba(14,19,34,.97)}
+  .gate b{font-size:17px}
+  .gate p{font-size:13px;color:var(--mut);margin:8px 0 14px;line-height:1.6}
+  .gate .p{width:100%;background:var(--grad);color:#fff;font-weight:700;border-radius:14px;padding:13px}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="bgImg" class="hidden"></div>
+
+<main id="app" class="wrap hidden">
+
+  <!-- โปรไฟล์ + ชื่อผู้ใช้ -->
+  <div class="top">
+    <div class="avatar"><div class="av-in"><span id="avatarLetter">?</span><img id="avatarImg" class="hidden" alt=""></div></div>
+    <div class="pill" id="uname">...</div>
+  </div>
+
+  <!-- หน้าปก: เว้นว่างไว้ (ใส่ลิงก์ที่ COVER_URL ในสคริปต์ด้านล่าง) -->
+  <div class="cover" id="cover"></div>
+
+  <!-- วางลิงก์ -->
+  <h2 class="lbl">วางลิงก์ที่นี่</h2>
+  <div class="search">
+    <input id="url" type="url" inputmode="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button id="go" aria-label="ตรวจสอบลิงก์">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+  </div>
+  <div id="status"></div>
+
+  <!-- ตัวอย่าง -->
+  <div class="sec">ตัวอย่าง</div>
+  <div class="card">
+    <div class="chead">
+      <div class="logo"><img id="logo" class="hidden" alt=""><span id="logoFb">🎬</span></div>
+      <div class="vtitle empty" id="vtitle">ชื่อวิดีโอ</div>
+    </div>
+    <div class="pv">
+      <img id="thumb" class="hidden" alt="">
+      <div id="pvEmpty">ตัวอย่าง</div>
+      <div id="dur" class="dur hidden"></div>
+      <div id="spin" class="spin hidden"></div>
+    </div>
+  </div>
+
+  <!-- ปุ่ม -->
+  <div class="actions">
+    <button id="clear" class="ghost">ล้าง</button>
+    <div class="split">
+      <button id="dl" class="p" disabled>โหลด</button>
+      <button id="arrow" class="p" aria-label="เลือกคุณภาพ" aria-haspopup="true" aria-expanded="false">▾</button>
+      <div id="menu" class="menu hidden" role="menu">
+        <button data-q="best" role="menuitem"><span>ดีที่สุด</span></button>
+        <button data-q="720" role="menuitem"><span>ดี<small>720p</small></span></button>
+        <button data-q="360" role="menuitem"><span>ต่ำ<small>360p</small></span></button>
+        <button data-q="auto" role="menuitem"><span>คุณภาพอัตโนมัติตามเน็ต</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="qHint" class="hint"></div>
+</main>
+
+<!-- ป๊อปอัพ: ไม่มีโทเค็น / เปิดลิงก์ตรง -->
+<div id="gate" class="gate">
+  <div class="card">
+    <b>ต้องเข้าสู่ระบบก่อน</b>
+    <p id="gateMsg">กรุณาเข้าสู่ระบบที่เว็บหลัก แล้วกดเข้าหน้านี้จากเว็บหลักอีกครั้ง</p>
+    <button class="p" id="gateBtn">ไปหน้าเข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ================== ตั้งค่า ==================
+  const COVER_URL = '';   // 🖼️ ลิงก์รูปหน้าปก (เว้นว่างไว้ก่อน เดี๋ยวมาใส่เอง)
+  const BG_URL    = '';   // 🖼️ ลิงก์รูปปกหลัง/พื้นหลัง (เว้นว่างไว้ก่อน เดี๋ยวมาใส่เอง)
+
+  const API = 'https://load-link-ktxx.onrender.com';                       // เซิร์ฟเวอร์ Render (ห้ามมี / ท้าย)
+  const MAIN_SITE_URL = 'https://suphasan887-beep.github.io/index.html/';  // เว็บหลัก
+
+  // ข้อมูลชุดเดียวกับเว็บหลัก KTOWIN-13
+  const SUPABASE_URL = 'https://ztkqtvdllpzjsvlqxzni.supabase.co';
+  const ANON_KEY = 'sb_publishable_BkDeJmZYwMys8OP4eMkpVQ_F6hrJ35t';
+  const TOKEN_KEY = 'main_access_token';
+  // =============================================
+
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  let current = null;       // { url, title }
+  let qSel = 'auto';        // best | 720 | 360 | auto
+  let reqId = 0;
+  let ready = false, wakeP = null;
+
+  // ---------- หน้าปก / พื้นหลัง ----------
+  (function applyLook(){
+    if(BG_URL){
+      const b = $('bgImg');
+      b.style.backgroundImage = 'url("' + BG_URL.replace(/"/g, '%22') + '")';
+      b.classList.remove('hidden');
+    }
+    if(COVER_URL){
+      const img = document.createElement('img');
+      img.alt = '';
+      img.onerror = () => img.remove();
+      img.src = COVER_URL;
+      $('cover').appendChild(img);
+    }
+  })();
+
+  // ---------- สถานะ ----------
+  function setStatus(t, cls){ const el = $('status'); el.textContent = t || ''; el.className = cls || ''; }
+
+  // ---------- ป๊อปอัพเข้าสู่ระบบ ----------
+  function showGate(msg){
+    try{ sessionStorage.removeItem(TOKEN_KEY); }catch(e){}
+    $('app').classList.add('hidden');
+    if(msg) $('gateMsg').textContent = msg;
+    $('gate').classList.add('show');
+  }
+  $('gateBtn').addEventListener('click', () => { location.href = MAIN_SITE_URL; });
+
+  // ---------- รับโทเค็นจากเว็บหลัก (#at=...) ----------
+  function getToken(){
+    const t = new URLSearchParams(location.hash.replace(/^#/, '')).get('at');
+    if(t){
+      try{ sessionStorage.setItem(TOKEN_KEY, t); }catch(e){}
+      history.replaceState(null, '', location.pathname + location.search); // ลบโทเค็นออกจากแถบลิงก์
+      return t;
+    }
+    try{ return sessionStorage.getItem(TOKEN_KEY); }catch(e){ return null; }
+  }
+
+  // ---------- โปรไฟล์ (ตาราง profiles ของเว็บหลัก) ----------
+  function setProfile(name, av){
+    name = name || 'ผู้ใช้';
+    $('uname').textContent = name;
+    $('avatarLetter').textContent = String(name).trim().charAt(0).toUpperCase() || '?';
+    const img = $('avatarImg');
+    if(av){
+      img.onload = () => { img.classList.remove('hidden'); $('avatarLetter').classList.add('hidden'); };
+      img.onerror = () => { img.classList.add('hidden'); $('avatarLetter').classList.remove('hidden'); };
+      img.src = av;
+    }else{
+      img.classList.add('hidden'); $('avatarLetter').classList.remove('hidden');
+    }
+  }
+
+  async function loadProfile(u, token){
+    const m = (u && u.user_metadata) || {};
+    const fbName = m.username || m.name || (u && u.email ? u.email.split('@')[0] : '') || 'ผู้ใช้';
+    setProfile(fbName, m.avatar_url || m.picture || '');
+    try{
+      const r = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=username,avatar_url&id=eq.' + encodeURIComponent(u.id),
+        { headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + token } });
+      if(r.ok){
+        const rows = await r.json();
+        if(Array.isArray(rows) && rows[0]) setProfile(rows[0].username || fbName, rows[0].avatar_url || '');
+      }
+    }catch(e){}
+  }
+
+  // ---------- ปลุกเซิร์ฟเวอร์ Render ----------
+  function wake(){
+    if(wakeP) return wakeP;
+    wakeP = (async () => {
+      for(let i = 0; i < 20 && !ready; i++){
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), 10000);
+        try{
+          const r = await fetch(API + '/api/ping', { cache: 'no-store', signal: ac.signal });
+          if(r.ok) ready = true;
+        }catch(e){}
+        clearTimeout(t);
+        if(!ready) await sleep(3000);
+      }
+      if(!ready) wakeP = null;
+      return ready;
+    })();
+    return wakeP;
+  }
+
+  // ---------- คุณภาพ ----------
+  function autoQuality(){
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if(!c) return 720;
+    if(c.saveData) return 360;
+    if(typeof c.downlink === 'number'){
+      if(c.downlink >= 10) return 'best';
+      if(c.downlink >= 4) return 720;
+      if(c.downlink >= 1.5) return 480;
+      return 360;
+    }
+    return ({ '4g': 720, '3g': 480 })[c.effectiveType] || 360;
+  }
+  const qName = q => q === 'best' ? 'สูงสุด' : q + 'p';
+
+  function renderQuality(){
+    document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('sel', b.dataset.q === qSel));
+    const labels = { best: 'ดีที่สุด', 720: 'ดี (720p)', 360: 'ต่ำ (360p)' };
+    $('qHint').textContent = qSel === 'auto'
+      ? 'คุณภาพ: อัตโนมัติตามเน็ต (ตอนนี้ ≈ ' + qName(autoQuality()) + ')'
+      : 'คุณภาพ: ' + labels[qSel];
+  }
+
+  function toggleMenu(open){
+    const show = open === undefined ? $('menu').classList.contains('hidden') : open;
+    $('menu').classList.toggle('hidden', !show);
+    $('arrow').setAttribute('aria-expanded', show ? 'true' : 'false');
+    if(show) renderQuality();
+  }
+  $('arrow').addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
+  document.querySelectorAll('#menu button').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation(); qSel = b.dataset.q; renderQuality(); toggleMenu(false);
+  }));
+  document.addEventListener('click', () => toggleMenu(false));
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') toggleMenu(false); });
+
+  // ---------- ตัวอย่าง ----------
+  function fmt(s){
+    if(!s) return '';
+    s = Math.floor(s);
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(r).padStart(2, '0');
+  }
+
+  function resetPreview(){
+    $('vtitle').textContent = 'ชื่อวิดีโอ'; $('vtitle').classList.add('empty');
+    $('thumb').classList.add('hidden'); $('thumb').removeAttribute('src');
+    $('pvEmpty').classList.remove('hidden');
+    $('dur').classList.add('hidden');
+    $('logo').classList.add('hidden'); $('logo').removeAttribute('src'); $('logoFb').classList.remove('hidden');
+    $('dl').disabled = true;
+    current = null;
+  }
+
+  function renderPreview(j, url){
+    $('vtitle').textContent = j.title || 'video'; $('vtitle').classList.remove('empty');
+    if(j.thumbnail){
+      const t = $('thumb');
+      t.onload = () => { t.classList.remove('hidden'); $('pvEmpty').classList.add('hidden'); };
+      t.onerror = () => t.classList.add('hidden');
+      t.src = j.thumbnail;
+    }
+    if(j.duration){ $('dur').textContent = fmt(j.duration); $('dur').classList.remove('hidden'); }
+    try{ // โลโก้ที่มาของลิงก์ = ไอคอนเว็บต้นทาง
+      const host = new URL(url).hostname;
+      const l = $('logo');
+      l.onload = () => { l.classList.remove('hidden'); $('logoFb').classList.add('hidden'); };
+      l.onerror = () => l.classList.add('hidden');
+      l.src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=64';
+    }catch(e){}
+    $('dl').disabled = false;
+  }
+
+  function busy(on){
+    $('go').disabled = on;
+    $('spin').classList.toggle('hidden', !on);
+  }
+
+  // ---------- ตรวจสอบลิงก์ ----------
+  async function check(){
+    let url = $('url').value.trim();
+    if(!url) return setStatus('วางลิงก์ก่อน', 'err');
+    if(!/^https?:\/\//i.test(url)){ url = 'https://' + url; $('url').value = url; }
+    const my = ++reqId;
+    resetPreview(); busy(true);
+    try{
+      if(!ready){
+        setStatus('⏳ กำลังปลุกเซิร์ฟเวอร์ (ครั้งแรกอาจใช้ราว 1 นาที)...');
+        if(!(await wake())) throw new Error('เซิร์ฟเวอร์ยังไม่ตอบ ลองกดใหม่อีกครั้ง');
+        if(my !== reqId) return;
+      }
+      setStatus('กำลังตรวจสอบลิงก์...');
+      const r = await fetch(API + '/api/info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+      let j = {}; try{ j = await r.json(); }catch(e){}
+      if(my !== reqId) return;
+      if(!r.ok) throw new Error(j.error || 'เกิดข้อผิดพลาด (' + r.status + ')');
+      current = { url, title: j.title || 'video' };
+      renderPreview(j, url);
+      setStatus('✅ พบวิดีโอแล้ว กดโหลดได้เลย', 'ok');
+    }catch(e){
+      if(my !== reqId) return;
+      setStatus('❌ ' + (e.message === 'Failed to fetch' ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้' : e.message), 'err');
+    }finally{
+      if(my === reqId) busy(false);
+    }
+  }
+
+  // ---------- ดาวน์โหลด ----------
+  function startDownload(){
+    if(!current) return;
+    const q = qSel === 'auto' ? autoQuality() : qSel;
+    const p = new URLSearchParams({ url: current.url, title: current.title, quality: String(q) });
+    const a = document.createElement('a');
+    a.href = API + '/api/download?' + p.toString();
+    a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setStatus('⬇️ เริ่มดาวน์โหลดแล้ว ดูความคืบหน้าที่แถบดาวน์โหลดของเบราว์เซอร์', 'ok');
+  }
+
+  function clearAll(){
+    reqId++; busy(false);
+    $('url').value = ''; resetPreview(); setStatus('');
+  }
+
+  // ---------- ผูกปุ่ม ----------
+  $('go').addEventListener('click', check);
+  $('dl').addEventListener('click', startDownload);
+  $('clear').addEventListener('click', clearAll);
+  $('url').addEventListener('keydown', e => { if(e.key === 'Enter') check(); });
+  $('url').addEventListener('paste', () => setTimeout(() => { if(/^(https?:\/\/|www\.)/i.test($('url').value.trim())) check(); }, 60));
+
+  // ---------- เริ่มทำงาน ----------
+  async function boot(){
+    wake(); // ปลุก Render ไปพร้อมกับตรวจสิทธิ์
+    const token = getToken();
+    if(!token) return showGate();
+    try{
+      const r = await fetch(SUPABASE_URL + '/auth/v1/user', { headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + token } });
+      if(!r.ok) return showGate('เซสชันหมดอายุ กรุณากลับไปเว็บหลักแล้วกดเข้าหน้านี้ใหม่');
+      const u = await r.json();
+      renderQuality();
+      $('app').classList.remove('hidden');
+      loadProfile(u, token);
+      if(!ready){
+        setStatus('⏳ กำลังปลุกเซิร์ฟเวอร์...');
+        wake().then(ok => {
+          if($('status').textContent.startsWith('⏳')){
+            setStatus(ok ? '✅ เซิร์ฟเวอร์พร้อมแล้ว' : '⚠️ เซิร์ฟเวอร์ยังไม่ตอบ ลองกดตรวจสอบอีกครั้ง', ok ? 'ok' : 'err');
+            if(ok) setTimeout(() => { if($('status').textContent.startsWith('✅ เซิร์ฟเวอร์')) setStatus(''); }, 2500);
+          }
+        });
+      }
+    }catch(e){
+      showGate('เชื่อมต่อระบบตรวจสิทธิ์ไม่ได้ ลองใหม่อีกครั้ง');
+    }
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
